@@ -43,11 +43,8 @@ class Quantum_Spin_Proces:
         self.tf_quantum_noise = tf_quantum_noise
         # OJO
         self.f_rage = f_rage
-        # States save
-        self.states_in_time = []
-        self.omegas_x = []
 
-  def Rz(self, alpha, ket_0, q_obj = 0, tf_expect = False):
+  def Rz(self, alpha, ket_0, q_obj = 0, tf_expect = True):
       # Estados iniciales y qubit objetivo:
       self.q_obj = q_obj
       self.ket_0 = ket_0
@@ -60,40 +57,34 @@ class Quantum_Spin_Proces:
       self.O_x = self.gir*(self.B1/2)
       # solucion:
       out = self.Hamiltonian_solve(tf_expect)
-      self.states_in_time.append(out.states)
       return out
 
-  def Rx(self, alpha, ket_0, q_obj = 0, tf_expect = False):
+  def Rx(self, alpha, ket_0, q_obj = 0, tf_expect = True):
       # Estados iniciales y qubit objetivo:
       self.q_obj = q_obj
       self.ket_0 = ket_0
       # parametros de compuerta:
       self.ω_x = self.gir * self.B0 + self.f_rage # OJO
       self.ω_z = self.gir * self.B0 
-      self.delt_t = (np.abs(alpha)*self.nf)/self.ω_x
+      #self.delt_t = (alpha*self.nf)/self.ω_x
       #self.B1 = (alpha * 2)/(self.gir * self.delt_t)
       # aca lo deje constante pero deberia ser variable y se deberia poder hacer prueas
       # sn RWA.
-      #self.B1 = self.B0*0.1
-      self.B1 = (alpha * 2)/(self.gir * self.delt_t)
+      self.B1 = self.B0*0.1
       self.O_x = self.gir*(self.B1/2)
+      self.delt_t = (alpha)/self.O_x
       # solucion:
       out = self.Hamiltonian_solve(tf_expect)
-      self.states_in_time.append(out.states)
-      self.omegas_x.append(self.ω_x)
       return out
 
-  def Ry(self, alpha, ket_0, q_obj = 0, tf_expect = False):
+  def Ry(self, alpha, ket_0, q_obj = 0, tf_expect = True):
 
       out_1 = self.Rx(np.pi/2, ket_0, q_obj=q_obj, tf_expect = False)
       end_state_1 = out_1.states[-1]
-      #self.states_in_time.append(out_1.states)
       out_2 = self.Rz(alpha, end_state_1,q_obj=q_obj, tf_expect = False)
       end_state_2 = out_2.states[-1]
-      #self.states_in_time.append(out_2.states)
       out_3 = self.Rx(-np.pi/2, end_state_2,q_obj=q_obj, tf_expect = False)
       end_state_3 = out_3.states[-1]
-      #self.states_in_time.append(out_3.states)
       if tf_expect == True:
         out_1_exp = self.Rx(np.pi/2, ket_0, q_obj=q_obj, tf_expect = True)
         out_2_exp = self.Rz(alpha, end_state_1,q_obj=q_obj, tf_expect = True)
@@ -119,7 +110,7 @@ class Quantum_Spin_Proces:
         out = out_3
       return out
 
-  def SWAP(self, ket_0, measure_op, q_obj = [0,1], tf_expectt = False):
+  def SWAP(self, ket_0, measure_op, q_obj = [0,1], tf_expectt = True):
       self.q_obj = q_obj
       self.ket_0 = ket_0
       self.Dt = np.pi/(self.J*self.n_swap)
@@ -127,10 +118,9 @@ class Quantum_Spin_Proces:
       self.measure = measure_op
       self.qobj = Qobj(self.measure, dims=[[2,2],[2,2]])
       self.out = self.Hamiltonian_solve_excharge(tf_expectt)
-      self.states_in_time.append(self.out.states)
       return self.out
 
-  def sqrt_SWAP(self, ket_0, measure_op, q_obj = [0,1], tf_expectt = False):
+  def sqrt_SWAP(self, ket_0, measure_op, q_obj = [0,1], tf_expectt = True):
       self.q_obj = q_obj
       self.ket_0 = ket_0
       self.Dt = (np.pi/(2*self.J*self.n_swap))
@@ -138,7 +128,6 @@ class Quantum_Spin_Proces:
       self.measure = measure_op
       self.qobj = Qobj(self.measure, dims=[[2,2],[2,2]])
       self.out = self.Hamiltonian_solve_excharge(tf_expectt)
-      self.states_in_time.append(self.out.states) 
       return self.out
 
   def CNOT(self, ket_0, measure_op, q_obj = [0,1], tf_expectt = False):
@@ -278,7 +267,6 @@ class Quantum_Spin_Proces:
             if i == self.q_obj:
               a = destroy(2)
               T2_star = 1/((1/self.T2) - (1/(2*self.T1)))
-              print(T2_star)
               c1 = a/(np.sqrt(self.T1))
               c2 = a.dag()*a*np.sqrt(2/T2_star)
               apply_qbit_c_ops_1.append(c1)
@@ -291,8 +279,7 @@ class Quantum_Spin_Proces:
 
         else:
           a = destroy(2)
-          T2_star = 1 / ( (1/self.T2) - (1/(2*self.T1)))
-          print(T2_star)
+          T2_star = 1/((1/self.T2) - (1/(2*self.T1)))
           c1 = a/(np.sqrt(self.T1))
           c2 = a.dag()*a*np.sqrt(2/T2_star)
           c_ops = [c1, c2]
@@ -309,7 +296,7 @@ class Quantum_Spin_Proces:
       self.output_rwa = mesolve(H, self.ket_0, self.tlist, c_ops, e_ops, self.args)
       return self.output_rwa
 
-  def Hamiltonian_solve_excharge(self, tf_expect = False):
+  def Hamiltonian_solve_excharge(self, tf_expect = True):
       delt_t = self.Dt
       Si, Sj = self.q_obj
       if self.N_qubits > 1:

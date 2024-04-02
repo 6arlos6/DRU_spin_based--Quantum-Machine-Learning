@@ -19,17 +19,17 @@ class CompositeGateProcessor(Quantum_Spin_Proces):
   
   def __init__(self, nf=4, h=1, gir =1.760e11, B0=10e-3, N_qubits=1, J=1, tf_noise=False,
                  noise_std=0.01, B1_offset=0, n_points_pulse_Ri=100, n_points_pulse_2Qbits=100,
-                n_swap=1, T1=1e3, T2 = 1e3, ket_dru_0 = basis(2, 0), tf_quantum_noise=False):
+                n_swap=1, T1=1e3, T2 = 1e3, ket_dru_0 = basis(2, 0), tf_quantum_noise=False, f_rage = 0):
                 super().__init__(h, gir, B0, nf, N_qubits, J, tf_noise,
                  noise_std, B1_offset, n_points_pulse_Ri,
-                 n_points_pulse_2Qbits, n_swap, T1, T2, tf_quantum_noise)
+                 n_points_pulse_2Qbits, n_swap, T1, T2, tf_quantum_noise, f_rage)
                 self.ket_dru_0 = ket_dru_0
 
-  def qcircuit_DRU_1_Qubit(self, params, x, bias=None, entanglement=False):
+  def qcircuit_DRU_1_Qubit(self, params, x, bias=None, entanglement=False, tf_expect = False):
     for i,p in enumerate(params):
         arg = np.multiply(p,x) + bias[i]
         arg1, arg2, arg3 = arg
-        self.ket_dru_0 = self.RzRyRz(float(arg3), float(arg1), float(arg2), self.ket_dru_0, tf_expect=False)
+        self.ket_dru_0 = self.RzRyRz(float(arg3), float(arg1), float(arg2), self.ket_dru_0, tf_expect = tf_expect)
         self.dict_states[f"ket_1_qubits_{i}"] = self.ket_dru_0.full()
     return self.ket_dru_0
 
@@ -95,7 +95,7 @@ class CompositeGateProcessor(Quantum_Spin_Proces):
           self.dict_states[f"ket_4_qubits_entanglement_impar{i}"] = self.ket_dru_0.full()
     return self.ket_dru_0
 
-  def RzRyRz(self, alpha, beta, gamma, ket_0, q_obj=0, tf_expect=True):
+  def RzRyRz(self, alpha, beta, gamma, ket_0, q_obj=0, tf_expect=False):
         rz_result = self.Rz(alpha, ket_0, q_obj=q_obj, tf_expect=False)
         end_state_rz = rz_result.states[-1]
 
